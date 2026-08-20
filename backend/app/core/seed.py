@@ -4,8 +4,29 @@ from app.core.database import users, jobs, next_id
 from app.core.security import get_password_hash
 from app.models.user import to_doc as user_to_doc
 from app.models.job import to_doc as job_to_doc
+from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+ADMIN_EMAILS = ["prasadghavghave0@gmail.com"]
+
+async def ensure_admins():
+    """Promote configured admin emails. Safe to run on every startup."""
+    for email in ADMIN_EMAILS:
+        doc = await users.find_one({"email": email})
+        if doc:
+            if not doc.get("is_admin"):
+                await users.update_one({"_id": doc["_id"]}, {"$set": {"is_admin": True}})
+                logger.info(f"Promoted {email} to admin")
+            else:
+                logger.info(f"{email} already admin")
+        else:
+            logger.warning(f"Admin email {email} not found in users collection - register it first")
+    for email in get_settings().EXTRA_ADMIN_EMAILS:
+        doc = await users.find_one({"email": email})
+        if doc and not doc.get("is_admin"):
+            await users.update_one({"_id": doc["_id"]}, {"$set": {"is_admin": True}})
+            logger.info(f"Promoted {email} to admin")
 
 async def seed_database():
     existing = await users.find_one({"email": "admin@jobapply.ai"})

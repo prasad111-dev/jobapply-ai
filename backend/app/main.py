@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from app.routers import auth, profile, jobs, applications, platforms, ai_engine
+from app.routers import auth, profile, jobs, applications, platforms, ai_engine, admin
 from app.core.database import init_indexes
 from app.core.logging_config import setup_logging
 from app.core.config import get_settings
@@ -61,6 +61,7 @@ app.include_router(jobs.router, prefix="/api/jobs", tags=["Jobs"])
 app.include_router(applications.router, prefix="/api/applications", tags=["Applications"])
 app.include_router(platforms.router, prefix="/api/platforms", tags=["Platforms"])
 app.include_router(ai_engine.router, prefix="/api/ai", tags=["AI Engine"])
+app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 
 @app.on_event("startup")
 async def startup():
@@ -70,6 +71,12 @@ async def startup():
         logger.info("MongoDB indexes created/verified")
     except Exception as e:
         logger.error(f"Database startup error: {e}")
+
+    try:
+        from app.core.seed import ensure_admins
+        await ensure_admins()
+    except Exception as e:
+        logger.error(f"Admin seed error: {e}")
 
     try:
         from app.services.scheduler import digest_loop

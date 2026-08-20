@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { auth } from '@/lib/api';
-import { FiGrid, FiSearch, FiFileText, FiLayers, FiUser, FiLogOut, FiMenu, FiX, FiZap } from 'react-icons/fi';
+import { FiGrid, FiSearch, FiFileText, FiLayers, FiUser, FiLogOut, FiMenu, FiX, FiZap, FiShield } from 'react-icons/fi';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -16,6 +16,8 @@ export default function Navbar() {
       auth.me().then(res => setUser(res.data)).catch(() => {});
     }
   }, []);
+
+  const isAdmin = user?.is_admin;
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -30,6 +32,10 @@ export default function Navbar() {
     { href: '/applications', label: 'Applications', icon: <FiFileText /> },
     { href: '/platforms', label: 'Platforms', icon: <FiLayers /> },
     { href: '/profile', label: 'Profile', icon: <FiUser /> },
+  ];
+
+  const adminLinks = [
+    { href: '/admin', label: 'Admin', icon: <FiShield /> },
   ];
 
   const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
@@ -51,6 +57,12 @@ export default function Navbar() {
             {user && navLinks.map(link => (
               <Link key={link.href} href={link.href}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${isActive(link.href) ? 'bg-gradient-to-r from-indigo-500/90 to-violet-500/90 text-white shadow-[0_0_16px_-4px_rgba(139,92,246,0.7)]' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+                {link.icon}{link.label}
+              </Link>
+            ))}
+            {user && isAdmin && adminLinks.map(link => (
+              <Link key={link.href} href={link.href}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${isActive(link.href) ? 'bg-gradient-to-r from-rose-500/90 to-fuchsia-500/90 text-white shadow-[0_0_16px_-4px_rgba(244,63,94,0.7)]' : 'text-rose-300 hover:text-white hover:bg-white/5'}`}>
                 {link.icon}{link.label}
               </Link>
             ))}
@@ -88,6 +100,12 @@ export default function Navbar() {
                 {navLinks.map(link => (
                   <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium ${isActive(link.href) ? 'bg-white/10 text-white' : 'text-slate-400'}`}>
+                    {link.icon}{link.label}
+                  </Link>
+                ))}
+                {isAdmin && adminLinks.map(link => (
+                  <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium ${isActive(link.href) ? 'bg-white/10 text-rose-300' : 'text-rose-300'}`}>
                     {link.icon}{link.label}
                   </Link>
                 ))}

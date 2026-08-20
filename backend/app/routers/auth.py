@@ -23,8 +23,21 @@ class UserResponse(BaseModel):
     username: str
     full_name: Optional[str]
     is_active: bool
+    is_admin: bool = False
     class Config:
         from_attributes = True
+        protected_namespaces = ()
+
+    @classmethod
+    def from_user(cls, user: Doc) -> "UserResponse":
+        return cls(
+            id=user.id,
+            email=user.get("email"),
+            username=user.get("username"),
+            full_name=user.get("full_name"),
+            is_active=bool(user.get("is_active", True)),
+            is_admin=bool(user.get("is_admin", False)),
+        )
 
 class Token(BaseModel):
     access_token: str
@@ -45,6 +58,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db=Depends(get_d
         raise HTTPException(status_code=401, detail="User not found")
     return _to_user_doc(user_dict)
 
+
+async def get_admin_user(current_user: Doc = Depends(get_current_user)):
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
 @router.post("/register", response_model=Token)
 async def register(user_data: UserCreate, db=Depends(get_db)):
     existing = await users.find_one({"$or": [{"email": user_data.email}, {"username": user_data.username}]})
@@ -63,7 +82,7 @@ async def register(user_data: UserCreate, db=Depends(get_db)):
     await users.insert_one(user_doc)
 
     token = create_access_token(data={"sub": user_id})
-    return Token(access_token=token, token_type="bearer", user=UserResponse.model_validate(_to_user_doc(user_doc)))
+    return Token(access_token=token, token_type="bearer", user=UserResponse.from_user(_to_user_doc(user_doc)))
 
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get_db)):
@@ -72,8 +91,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get
         raise HTTPException(status_code=401, detail="Incorrect username or password")
 
     token = create_access_token(data={"sub": user_dict["id"]})
-    return Token(access_token=token, token_type="bearer", user=UserResponse.model_validate(_to_user_doc(user_dict)))
+    return Token(access_token=token, token_type="bearer", user=UserResponse.from_user(_to_user_doc(user_dict)))
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: Doc = Depends(get_current_user)):
-    return UserResponse.model_validate(current_user)
+    return UserResponse.from_user(current_user)

@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str = ""
     SMTP_TLS: bool = True
     DIGEST_INTERVAL_HOURS: int = 24
+    EXTRA_ADMIN_EMAILS: list = []
 
     class Config:
         env_file = ".env"

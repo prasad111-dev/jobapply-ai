@@ -10,6 +10,7 @@ def to_doc(user: dict) -> dict:
     doc.setdefault("preferences", {})
     doc.setdefault("is_active", True)
     doc.setdefault("is_verified", False)
+    doc.setdefault("is_admin", False)
     doc.setdefault("created_at", datetime.utcnow())
     doc.setdefault("updated_at", datetime.utcnow())
     return doc
