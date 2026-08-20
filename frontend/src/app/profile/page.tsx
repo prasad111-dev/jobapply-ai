@@ -47,6 +47,11 @@ export default function ProfilePage() {
     setForm({ ...form, preferences: { ...(form.preferences || {}), [key]: value }, [key]: value });
   };
 
+  const isFresher = (Number(form.experience_years) || 0) === 0;
+  const setExperienceType = (type: 'fresher' | 'experienced') => {
+    setForm({ ...form, experience_years: type === 'fresher' ? 0 : 1 });
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-extrabold tracking-tight mb-2">My Profile</h1>
@@ -121,8 +126,21 @@ export default function ProfilePage() {
             </div>
           ))}
           <div>
-            <label className="block text-sm text-slate-400 mb-1.5">Years of Experience</label>
-            <input type="number" className="input-field" value={form.experience_years || 0} onChange={e => setForm({...form, experience_years: parseInt(e.target.value)})} />
+            <label className="block text-sm text-slate-400 mb-1.5">Experience Level</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setExperienceType('fresher')}
+                className={`px-4 py-2.5 rounded-xl text-sm font-medium border transition-all ${isFresher ? 'bg-gradient-to-r from-indigo-500/90 to-violet-500/90 text-white border-transparent shadow-lg' : 'bg-white/[0.03] text-slate-300 border-white/10 hover:bg-white/5'}`}>
+                Fresher / Intern
+              </button>
+              <button type="button" onClick={() => setExperienceType('experienced')}
+                className={`px-4 py-2.5 rounded-xl text-sm font-medium border transition-all ${!isFresher ? 'bg-gradient-to-r from-indigo-500/90 to-violet-500/90 text-white border-transparent shadow-lg' : 'bg-white/[0.03] text-slate-300 border-white/10 hover:bg-white/5'}`}>
+                Experienced
+              </button>
+            </div>
+            {!isFresher && (
+              <input type="number" min="0" className="input-field mt-2" placeholder="e.g. 3"
+                value={form.experience_years || ''} onChange={e => setForm({...form, experience_years: parseInt(e.target.value) || 0})} />
+            )}
           </div>
         </div>
         <button onClick={handleSave} disabled={saving} className="btn-primary mt-6 px-6 py-2.5">
@@ -138,13 +156,15 @@ export default function ProfilePage() {
         <p className="text-sm text-slate-500 mb-5">Used to auto-answer common application questions — fill once, reused everywhere.</p>
         <div className="grid md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm text-slate-400 mb-1.5">Current Salary (₹)</label>
-            <input className="input-field" placeholder="e.g. 1200000" value={form.preferences?.current_salary || ''} onChange={e => setPref('current_salary', e.target.value)} />
-          </div>
-          <div>
             <label className="block text-sm text-slate-400 mb-1.5">Expected Salary (₹)</label>
             <input className="input-field" placeholder="e.g. 1800000" value={form.preferences?.expected_salary || ''} onChange={e => setPref('expected_salary', e.target.value)} />
           </div>
+          {!isFresher && (
+            <div>
+              <label className="block text-sm text-slate-400 mb-1.5">Current Salary (₹)</label>
+              <input className="input-field" placeholder="e.g. 1200000" value={form.preferences?.current_salary || ''} onChange={e => setPref('current_salary', e.target.value)} />
+            </div>
+          )}
           <div>
             <label className="block text-sm text-slate-400 mb-1.5">Notice Period</label>
             <select className="input-field" value={form.preferences?.notice_period || ''} onChange={e => setPref('notice_period', e.target.value)}>
@@ -178,14 +198,29 @@ export default function ProfilePage() {
             <label className="block text-sm text-slate-400 mb-1.5">Preferred Location</label>
             <input className="input-field" placeholder="e.g. Bengaluru" value={form.preferences?.preferred_location || ''} onChange={e => setPref('preferred_location', e.target.value)} />
           </div>
-          <div>
-            <label className="block text-sm text-slate-400 mb-1.5">Current Company</label>
-            <input className="input-field" value={form.preferences?.current_company || ''} onChange={e => setPref('current_company', e.target.value)} />
-          </div>
-          <div>
-            <label className="block text-sm text-slate-400 mb-1.5">Current Title</label>
-            <input className="input-field" value={form.preferences?.current_title || ''} onChange={e => setPref('current_title', e.target.value)} />
-          </div>
+          {isFresher ? (
+            <>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5">Internship Company</label>
+                <input className="input-field" placeholder="e.g. Infosys" value={form.preferences?.current_company || ''} onChange={e => setPref('current_company', e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5">Internship Role / Title</label>
+                <input className="input-field" placeholder="e.g. Software Intern" value={form.preferences?.current_title || ''} onChange={e => setPref('current_title', e.target.value)} />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5">Current Company</label>
+                <input className="input-field" value={form.preferences?.current_company || ''} onChange={e => setPref('current_company', e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5">Current Title</label>
+                <input className="input-field" value={form.preferences?.current_title || ''} onChange={e => setPref('current_title', e.target.value)} />
+              </div>
+            </>
+          )}
         </div>
         <button onClick={handleSave} disabled={saving} className="btn-primary mt-6 px-6 py-2.5">
           <FiSave /> {saving ? 'Saving...' : 'Save Answers'}

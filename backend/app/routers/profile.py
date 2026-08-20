@@ -118,6 +118,7 @@ async def upload_resume(file: UploadFile = File(...), current_user: Doc = Depend
 
 def _completeness(user: Doc) -> dict:
     prefs = user.get("preferences") or {}
+    is_fresher = (user.get("experience_years") or 0) == 0
     checks = {
         "resume": {
             "done": bool(user.get("resume_file_path")),
@@ -139,8 +140,10 @@ def _completeness(user: Doc) -> dict:
         },
         "answers": {
             "done": bool(
-                prefs.get("current_salary") and prefs.get("expected_salary")
+                prefs.get("expected_salary")
                 and prefs.get("notice_period") and prefs.get("availability")
+                and (prefs.get("current_salary") or is_fresher)
+                and (not is_fresher or prefs.get("current_company") or prefs.get("current_title"))
             ),
             "label": "Fill application answers (salary, notice period, availability)",
             "hint": "These auto-answer common questions on every application",
