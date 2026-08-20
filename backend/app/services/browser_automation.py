@@ -25,6 +25,22 @@ def _find_chrome():
     for p in CHROME_PATHS:
         if os.path.exists(p):
             return p
+    # Playwright's own Chromium (used on Render / when no system Chrome exists)
+    try:
+        from playwright._impl._driver import compute_driver_executable
+    except Exception:
+        compute_driver_executable = None
+    pw_root = os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "")
+    if pw_root:
+        candidates = [
+            os.path.join(pw_root, "chromium-*/chrome-linux/chrome"),
+            os.path.join(pw_root, "chromium-*/chrome-linux64/chrome"),
+        ]
+        for pattern in candidates:
+            import glob
+            matches = sorted(glob.glob(pattern))
+            if matches:
+                return matches[0]
     return None
 
 

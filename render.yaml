@@ -2,7 +2,7 @@ services:
   - type: web
     name: jobapply-backend
     runtime: python
-    buildCommand: "pip install -r backend/requirements.txt"
+    buildCommand: "bash backend/render_build.sh"
     startCommand: "bash backend/render_start.sh"
     healthCheckPath: /health
     envVars:
@@ -20,6 +20,8 @@ services:
         sync: false
       - key: RESUME_STORAGE_PATH
         value: /data/uploads/resumes
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: /opt/playwright
     disk:
       name: data
       mountPath: /data
