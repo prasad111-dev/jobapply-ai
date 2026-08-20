@@ -8,7 +8,10 @@ from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-ADMIN_EMAILS = ["prasadghavghave0@gmail.com"]
+ADMIN_EMAILS = [
+    "prasadghavghave0@gmail.com",
+    "prasadghavghave0@gmil.com",
+]
 
 async def ensure_admins():
     """Promote configured admin emails. Safe to run on every startup."""
