@@ -3,9 +3,12 @@ set -e
 cd backend
 export PYTHONUNBUFFERED=1
 export ENVIRONMENT=${ENVIRONMENT:-production}
-export PLAYWRIGHT_BROWSERS_PATH=${PLAYWRIGHT_BROWSERS_PATH:-/data/playwright}
-export RESUME_STORAGE_PATH=${RESUME_STORAGE_PATH:-/data/uploads/resumes}
-mkdir -p "$RESUME_STORAGE_PATH" 2>/dev/null || true
+# Free tier: no persistent disk, so default to a writable folder on the container
+# (ephemeral - wiped on redeploy - but keeps resume uploads working between requests)
+BACKEND_ROOT="$(pwd)"
+export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$BACKEND_ROOT/../playwright_cache}"
+export RESUME_STORAGE_PATH="${RESUME_STORAGE_PATH:-$BACKEND_ROOT/uploads}"
+mkdir -p "$RESUME_STORAGE_PATH"
 
 exec gunicorn app.main:app \
   --bind 0.0.0.0:${PORT:-8000} \

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
-
-export PLAYWRIGHT_BROWSERS_PATH=${PLAYWRIGHT_BROWSERS_PATH:-/data/playwright}
-mkdir -p /data 2>/dev/null || true
+REPO_ROOT="$(pwd)"
+export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$REPO_ROOT/playwright_cache}"
+mkdir -p "$PLAYWRIGHT_BROWSERS_PATH"
 
 echo "=== Installing Python dependencies ==="
 pip install -r backend/requirements.txt

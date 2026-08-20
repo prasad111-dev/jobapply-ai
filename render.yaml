@@ -18,11 +18,3 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
-      - key: RESUME_STORAGE_PATH
-        value: /data/uploads/resumes
-      - key: PLAYWRIGHT_BROWSERS_PATH
-        value: /data/playwright
-    disk:
-      name: data
-      mountPath: /data
-      sizeGB: 1
