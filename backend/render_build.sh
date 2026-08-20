@@ -7,7 +7,11 @@ echo "=== Installing Python dependencies ==="
 pip install -r backend/requirements.txt
 
 echo "=== Installing Playwright Chromium ==="
-python -m playwright install --with-deps chromium
+# Try to install OS dependencies (needs root; ok to skip on Render)
+if command -v apt-get >/dev/null 2>&1 && [ "$(id -u)" = "0" ]; then
+    python -m playwright install-deps chromium || echo "  (install-deps skipped)"
+fi
+python -m playwright install chromium || echo "  (chromium install skipped - app runs without browser features)"
 
 echo "=== Building frontend (static export) ==="
 cd frontend
