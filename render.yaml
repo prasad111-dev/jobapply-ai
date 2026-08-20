@@ -16,10 +16,10 @@ services:
         value: production
       - key: OPENAI_API_KEY
         sync: false
-      - key: REDIS_URL
-        value: redis://localhost:6379
       - key: FRONTEND_URL
         sync: false
+      - key: RESUME_STORAGE_PATH
+        value: /data/uploads/resumes
     disk:
       name: data
       mountPath: /data
@@ -32,4 +32,6 @@ services:
     startCommand: "cd frontend && npm start"
     envVars:
       - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: BACKEND_INTERNAL_URL
         sync: false

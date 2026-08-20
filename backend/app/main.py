@@ -111,11 +111,11 @@ async def health_detailed():
 
     try:
         import redis
-        r = redis.from_url("redis://localhost:6379")
+        r = redis.from_url(settings.REDIS_URL or "redis://localhost:6379")
         r.ping()
         health_status["checks"]["redis"] = "healthy"
     except Exception as e:
-        health_status["checks"]["redis"] = f"unhealthy: {str(e)}"
+        health_status["checks"]["redis"] = "unhealthy: redis optional"
         health_status["status"] = "degraded"
 
     return health_status

@@ -18,8 +18,22 @@ if not UPLOAD_DIR.is_absolute():
 RESUME_DIR = UPLOAD_DIR / "resumes"
 TEMP_DIR = UPLOAD_DIR / "temp"
 
-for d in [UPLOAD_DIR, RESUME_DIR, TEMP_DIR]:
-    d.mkdir(parents=True, exist_ok=True)
+def _ensure_dirs(base: Path):
+    for d in [base, base / "resumes", base / "temp"]:
+        d.mkdir(parents=True, exist_ok=True)
+
+try:
+    _ensure_dirs(UPLOAD_DIR)
+    if not os.access(UPLOAD_DIR, os.W_OK):
+        raise OSError("not writable")
+except OSError:
+    # Fall back to repo-local storage when the configured path isn't writable
+    # (e.g. local dev without a mounted /data volume)
+    UPLOAD_DIR = BASE_DIR / "uploads"
+    RESUME_DIR = UPLOAD_DIR / "resumes"
+    TEMP_DIR = UPLOAD_DIR / "temp"
+    _ensure_dirs(UPLOAD_DIR)
+    logger.warning(f"Configured RESUME_STORAGE_PATH not writable, using fallback {UPLOAD_DIR}")
 
 def save_resume(user_id: int, filename: str, content: bytes) -> str:
     ext = Path(filename).suffix
