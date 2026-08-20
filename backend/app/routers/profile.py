@@ -34,7 +34,7 @@ class ProfileResponse(BaseModel):
     experience_years: int
     education: list
     preferences: dict
-    has_resume: bool = False
+    has_resume: Optional[bool] = False
     class Config:
         from_attributes = True
 

@@ -27,10 +27,10 @@ class ApplicationResponse(BaseModel):
     platform_name: str
     platform_url: Optional[str] = None
     status: str
-    cover_letter: Optional[str]
+    cover_letter: Optional[str] = None
     form_data: Optional[dict] = None
-    submitted_at: Optional[datetime]
-    error_message: Optional[str]
+    submitted_at: Optional[datetime] = None
+    error_message: Optional[str] = None
     created_at: datetime
     class Config:
         from_attributes = True

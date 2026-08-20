@@ -15,17 +15,17 @@ class JobResponse(BaseModel):
     id: int
     title: str
     company: str
-    location: Optional[str]
-    description: Optional[str]
-    salary_min: Optional[int]
-    salary_max: Optional[int]
+    location: Optional[str] = None
+    description: Optional[str] = None
+    salary_min: Optional[int] = None
+    salary_max: Optional[int] = None
     job_type: str
     remote_option: bool
     platform_source: str
     platform_url: Optional[str] = None
     match_score: float
     skills_required: list
-    posted_date: Optional[datetime]
+    posted_date: Optional[datetime] = None
     class Config:
         from_attributes = True
 
