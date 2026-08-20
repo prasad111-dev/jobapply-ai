@@ -1,0 +1,34 @@
+# Secrets - NEVER commit
+backend/.env
+frontend/.env.local
+*.env.local
+
+# Database & user data
+backend/*.db
+backend/*.sqlite
+backend/data/
+backend/uploads/
+backend/sessions/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Node / Next
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# Logs & temp
+*.log
+/tmp/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store

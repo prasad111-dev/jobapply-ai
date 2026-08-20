@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: jobapply-backend
+    runtime: python
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "bash backend/render_start.sh"
+    healthCheckPath: /health
+    envVars:
+      - key: MONGODB_URL
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: jobapply
+      - key: SECRET_KEY
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: REDIS_URL
+        value: redis://localhost:6379
+      - key: FRONTEND_URL
+        sync: false
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1
+
+  - type: web
+    name: jobapply-frontend
+    runtime: node
+    buildCommand: "cd frontend && npm install && npm run build"
+    startCommand: "cd frontend && npm start"
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
