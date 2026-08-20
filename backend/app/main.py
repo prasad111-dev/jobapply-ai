@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from app.routers import auth, profile, jobs, applications, platforms, ai_engine
 from app.core.database import init_indexes
 from app.core.logging_config import setup_logging
@@ -8,7 +9,9 @@ from app.core.config import get_settings
 from app.middleware.security import RateLimitMiddleware, SecurityHeadersMiddleware, RequestLoggingMiddleware
 from app.core.exceptions import AppException
 import logging
+import os
 import time
+from pathlib import Path
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -85,15 +88,6 @@ async def shutdown():
     except Exception:
         pass
 
-@app.get("/", tags=["Root"])
-async def root():
-    return {
-        "message": "JobApply AI Platform API",
-        "version": "1.0.0",
-        "docs": "/docs",
-        "health": "/health"
-    }
-
 @app.get("/health", tags=["Health"])
 async def health():
     return {"status": "healthy", "version": "1.0.0"}
@@ -119,3 +113,29 @@ async def health_detailed():
         health_status["status"] = "degraded"
 
     return health_status
+
+
+# --- Serve the built frontend (single service deployment) ---
+FRONTEND_OUT = Path(__file__).resolve().parent.parent.parent / "frontend" / "out"
+_INDEX_FILE = FRONTEND_OUT / "index.html"
+
+
+def _is_api_or_docs(path: str) -> bool:
+    return path.startswith("/api/") or path == "/api" or path.startswith("/docs") or path.startswith("/redoc") or path.startswith("/openapi.json")
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_frontend(full_path: str):
+    if _is_api_or_docs(f"/{full_path}"):
+        return JSONResponse(status_code=404, content={"detail": "Not found"})
+    if FRONTEND_OUT.exists():
+        requested = (FRONTEND_OUT / full_path).resolve()
+        # prevent path traversal
+        if str(requested).startswith(str(FRONTEND_OUT.resolve())) and requested.is_file():
+            return FileResponse(requested)
+        candidate = FRONTEND_OUT / full_path / "index.html"
+        if candidate.is_file():
+            return FileResponse(candidate)
+        if _INDEX_FILE.is_file():
+            return FileResponse(_INDEX_FILE)
+    return JSONResponse(status_code=404, content={"detail": "Frontend not built"})

@@ -9,4 +9,9 @@ pip install -r backend/requirements.txt
 echo "=== Installing Playwright Chromium ==="
 python -m playwright install --with-deps chromium
 
+echo "=== Building frontend (static export) ==="
+cd frontend
+npm install
+npm run build
+
 echo "=== Build complete ==="

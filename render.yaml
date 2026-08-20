@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: jobapply-backend
+    name: jobapply
     runtime: python
     buildCommand: "bash backend/render_build.sh"
     startCommand: "bash backend/render_start.sh"
@@ -26,14 +26,3 @@ services:
       name: data
       mountPath: /data
       sizeGB: 1
-
-  - type: web
-    name: jobapply-frontend
-    runtime: node
-    buildCommand: "cd frontend && npm install && npm run build"
-    startCommand: "cd frontend && npm start"
-    envVars:
-      - key: NEXT_PUBLIC_API_URL
-        sync: false
-      - key: BACKEND_INTERNAL_URL
-        sync: false
