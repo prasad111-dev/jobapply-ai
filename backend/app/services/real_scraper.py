@@ -123,15 +123,24 @@ async def scrape_remotive(query: str = "python", max_results: int = 30) -> list:
 
 
 def _jobs_html(html: str, container_class: str, title_sel: str, link_sel: str) -> list:
-    """Very small, dependency-free HTML job-card extractor."""
+    """Small HTML job-card extractor — tries multiple class patterns for Naukri's layout."""
     import re
     jobs = []
-    pattern = re.compile(r'<div[^>]*class="[^"]*' + container_class + r'[^"]*"[^>]*>', re.I)
-    starts = [m.end() for m in pattern.finditer(html)]
+    patterns = [
+        re.compile(r'<div[^>]*class="[^"]*' + container_class + r'[^"]*"[^>]*>', re.I),
+        re.compile(r'<article[^>]*class="[^"]*' + container_class + r'[^"]*"[^>]*>', re.I),
+    ]
+    starts = []
+    for pat in patterns:
+        starts.extend([m.end() for m in pat.finditer(html)])
+    starts.sort()
     for i, start in enumerate(starts):
         end = starts[i + 1] if i + 1 < len(starts) else len(html)
         chunk = html[start:end]
+        # Try multiple title patterns
         tm = re.search(r'<a[^>]*class="[^"]*' + title_sel + r'[^"]*"[^>]*>', chunk, re.I)
+        if not tm:
+            tm = re.search(r'<a[^>]*class="[^"]*title[^"]*"[^>]*href="([^"]+)"[^>]*>([^<]+)', chunk, re.I)
         if not tm:
             continue
         atag = chunk[tm.start():tm.end()]
@@ -143,13 +152,19 @@ def _jobs_html(html: str, container_class: str, title_sel: str, link_sel: str) -
         if not url.startswith("http"):
             url = "https://www.naukri.com" + url if "naukri" in chunk[:400].lower() else "https://" + url
         company = ""
-        cm = re.search(r'class="[^"]*(?:companyName|comp-name|company)[^"]*"[^>]*>(.*?)</', chunk, re.I | re.S)
-        if cm:
-            company = re.sub(r"<[^>]+>", "", cm.group(1)).strip()[:150]
+        for comp_pat in [r'class="[^"]*(?:companyName|comp-name|company|companyName__Text)[^"]*"[^>]*>(.*?)</',
+                         r'data-testid="company-name"[^>]*>(.*?)<']:
+            cm = re.search(comp_pat, chunk, re.I | re.S)
+            if cm:
+                company = re.sub(r"<[^>]+>", "", cm.group(1)).strip()[:150]
+                break
         loc = ""
-        lm = re.search(r'class="[^"]*(?:locWdth|add-span|location)[^"]*"[^>]*>(.*?)</', chunk, re.I | re.S)
-        if lm:
-            loc = re.sub(r"<[^>]+>", "", lm.group(1)).strip()[:150]
+        for loc_pat in [r'class="[^"]*(?:locWdth|add-span|location|locationGpsWidget)[^"]*"[^>]*>(.*?)</',
+                        r'class="[^"]*loc[^"]*"[^>]*>(.*?)<']:
+            lm = re.search(loc_pat, chunk, re.I | re.S)
+            if lm:
+                loc = re.sub(r"<[^>]+>", "", lm.group(1)).strip()[:150]
+                break
         title = re.sub(r"\s+", " ", title).strip()
         if title and url:
             jobs.append({
@@ -236,10 +251,18 @@ async def scrape_internshala(query: str = "python", max_results: int = 30) -> li
         return []
 
 
+async def scrape_naukri(query: str = "python developer", max_results: int = 30) -> list:
+    """Naukri scraper — tries HTTP first (works everywhere), falls back to browser."""
+    jobs = await scrape_naukri_http(query, max_results)
+    if jobs:
+        return jobs
+    return await scrape_naukri_browser(query, max_results)
+
+
 REAL_SCRAPERS = {
     "remoteok": scrape_remoteok,
     "remotive": scrape_remotive,
-    "naukri": scrape_naukri_browser,
+    "naukri": scrape_naukri,
     "internshala": scrape_internshala,
 }
 
@@ -253,16 +276,20 @@ async def scrape_real(platform_name: str, query: str = "", max_results: int = 30
 
 
 async def scrape_all_real(query: str = "python developer", max_results: int = 15) -> list:
-    """Scrape from every working real source and merge."""
+    """Scrape from every working real source and merge. Handles failures gracefully."""
     results = await asyncio.gather(
         scrape_real("remoteok", query, max_results),
         scrape_real("remotive", query, max_results),
         scrape_real("naukri", query, max_results),
         scrape_real("internshala", query, max_results),
+        return_exceptions=True,
     )
     merged = []
     seen = set()
     for group in results:
+        if isinstance(group, Exception):
+            logger.warning("Scrape source failed: %s", group)
+            continue
         for job in group:
             key = job.get("platform_url") or job.get("platform_job_id")
             if key and key not in seen:
