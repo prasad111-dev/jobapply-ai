@@ -55,26 +55,26 @@ export default function Navbar() {
             </span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-1 bg-white/[0.03] border border-white/10 rounded-2xl p-1">
+          <div className="flex items-center gap-1 bg-white/[0.03] border border-white/10 rounded-2xl p-1 overflow-x-auto max-w-[60vw] scrollbar-hide">
             {user && navLinks.map(link => (
               <Link key={link.href} href={link.href}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${isActive(link.href) ? 'bg-gradient-to-r from-indigo-500/90 to-violet-500/90 text-white shadow-[0_0_16px_-4px_rgba(139,92,246,0.7)]' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all duration-200 ${isActive(link.href) ? 'bg-gradient-to-r from-indigo-500/90 to-violet-500/90 text-white shadow-[0_0_16px_-4px_rgba(139,92,246,0.7)]' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
                 {link.icon}{link.label}
               </Link>
             ))}
             {user && isAdmin && adminLinks.map(link => (
               <Link key={link.href} href={link.href}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${isActive(link.href) ? 'bg-gradient-to-r from-rose-500/90 to-fuchsia-500/90 text-white shadow-[0_0_16px_-4px_rgba(244,63,94,0.7)]' : 'text-rose-300 hover:text-white hover:bg-white/5'}`}>
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all duration-200 ${isActive(link.href) ? 'bg-gradient-to-r from-rose-500/90 to-fuchsia-500/90 text-white shadow-[0_0_16px_-4px_rgba(244,63,94,0.7)]' : 'text-rose-300 hover:text-white hover:bg-white/5'}`}>
                 {link.icon}{link.label}
               </Link>
             ))}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {user ? (
-              <div className="hidden md:flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 {connectedPlatforms.length > 0 && (
-                  <div className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1.5">
+                  <div className="hidden sm:flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1.5">
                     <FiCheckCircle className="text-sm" />
                     {connectedPlatforms.filter((p: any) => p.is_connected).map((p: any) => (
                       <span key={p.platform_name} className="capitalize">{p.platform_name}</span>
@@ -85,24 +85,24 @@ export default function Navbar() {
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center text-sm font-bold">
                     {(user.full_name || user.username || 'U').charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-sm text-slate-300 font-medium max-w-[120px] truncate">{user.full_name || user.username}</span>
+                  <span className="hidden sm:block text-sm text-slate-300 font-medium max-w-[120px] truncate">{user.full_name || user.username}</span>
                 </div>
                 <button onClick={logout} className="btn-ghost p-2" title="Logout"><FiLogOut /></button>
               </div>
             ) : (
-              <div className="hidden md:flex gap-2">
-                <Link href="/login" className="btn-secondary text-sm px-4 py-2">Login</Link>
-                <Link href="/register" className="btn-primary text-sm px-4 py-2">Get Started</Link>
+              <div className="flex gap-2">
+                <Link href="/login" className="btn-secondary text-sm px-3 sm:px-4 py-2">Login</Link>
+                <Link href="/register" className="btn-primary text-sm px-3 sm:px-4 py-2">Get Started</Link>
               </div>
             )}
-            <button className="md:hidden text-slate-300 p-2" onClick={() => setMenuOpen(!menuOpen)}>
+            <button className="hidden text-slate-300 p-2" onClick={() => setMenuOpen(!menuOpen)}>
               {menuOpen ? <FiX className="text-xl" /> : <FiMenu className="text-xl" />}
             </button>
           </div>
         </div>
       </div>
 
-      {menuOpen && (
+      {false && menuOpen && (
         <div className="md:hidden border-t border-white/10 bg-[#0a0f1f]/95 backdrop-blur-xl">
           <div className="px-4 py-3 space-y-1">
             {user ? (

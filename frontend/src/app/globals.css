@@ -85,6 +85,8 @@
   .animate-float { animation: float 8s ease-in-out infinite; }
   .animate-float-slow { animation: float 12s ease-in-out infinite; }
   .animate-pulse-glow { animation: pulseGlow 4s ease-in-out infinite; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
   .bg-grid {
     background-image:
       linear-gradient(rgba(148,163,184,0.05) 1px, transparent 1px),
