@@ -142,10 +142,13 @@ export default function JobsPage() {
           <div>
             <label className="text-xs text-slate-400 mb-1.5 block font-medium uppercase tracking-wide">Source</label>
             <select className="input-field" value={scrapePlatform} onChange={e => setScrapePlatform(e.target.value)}>
-              <option value="all">All sources (RemoteOK + Remotive + Internshala + Naukri)</option>
+              <option value="all">All sources (RemoteOK + Remotive + Internshala + JSearch)</option>
               <option value="remoteok">RemoteOK (remote jobs)</option>
               <option value="remotive">Remotive (remote jobs)</option>
               <option value="internshala">Internshala (internships)</option>
+              <option value="linkedin">LinkedIn (via JSearch)</option>
+              <option value="indeed">Indeed (via JSearch)</option>
+              <option value="glassdoor">Glassdoor (via JSearch)</option>
               <option value="naukri">Naukri (may need CAPTCHA)</option>
               {connectedPlatforms.length > 0 && connectedPlatforms.map(p => (
                 <option key={p.platform_name} value={p.platform_name} className="capitalize">{p.platform_name} (connected)</option>

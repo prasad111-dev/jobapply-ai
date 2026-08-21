@@ -259,11 +259,88 @@ async def scrape_naukri(query: str = "python developer", max_results: int = 30) 
     return await scrape_naukri_browser(query, max_results)
 
 
+async def scrape_jsearch(query: str = "python developer", max_results: int = 30) -> list:
+    """JSearch API via OpenWeb Ninja — aggregates LinkedIn, Indeed, Glassdoor, ZipRecruiter.
+
+    Free tier: 200 requests/month, no credit card.
+    Set JSEARCH_API_KEY env var to enable. Falls back gracefully if not set.
+    """
+    import os
+    api_key = os.environ.get("JSEARCH_API_KEY", "")
+    if not api_key:
+        logger.info("JSearch: JSEARCH_API_KEY not set, skipping")
+        return []
+
+    try:
+        url = "https://jsearch.p.rapidapi.com/search"
+        headers = {
+            "X-RapidAPI-Key": api_key,
+            "X-RapidAPI-Host": "jsearch.p.rapidapi.com",
+        }
+        params = {
+            "query": query,
+            "page": "1",
+            "num_pages": "1",
+            "date_posted": "week",
+        }
+        async with httpx.AsyncClient(follow_redirects=True, timeout=25) as client:
+            resp = await client.get(url, headers=headers, params=params)
+            resp.raise_for_status()
+            data = resp.json()
+
+        raw_jobs = data.get("data", [])
+        jobs = []
+        for item in raw_jobs:
+            if not isinstance(item, dict):
+                continue
+            title = (item.get("job_title") or "").strip()
+            company = (item.get("employer_name") or "").strip()
+            location = (item.get("job_city") or "") + (", " + item.get("job_state", "") if item.get("job_state") else "")
+            location = location.strip(", ")
+            url = (item.get("job_apply_link") or item.get("job_google_link") or "").strip()
+            desc = (item.get("job_description") or "")[:2000]
+            source = (item.get("job_publisher") or "linkedin").lower()
+            emp_type = (item.get("job_employment_type") or "FULLTIME").replace("FULLTIME", "full-time").replace("PARTTIME", "part-time").replace("INTERNSHIP", "internship").replace("CONTRACTOR", "contract").lower()
+
+            if not title or not url:
+                continue
+
+            skills = []
+            if item.get("job_required_skills"):
+                skills = item["job_required_skills"][:10]
+
+            jobs.append({
+                "title": title[:200],
+                "company": company[:150] if company else "Unknown",
+                "location": (location or "")[:150],
+                "description": desc,
+                "platform_source": source[:50],
+                "platform_url": url,
+                "platform_job_id": f"{source}_{item.get('job_id', abs(hash(title + company)))}",
+                "job_type": emp_type[:50],
+                "remote_option": bool(item.get("job_is_remote")),
+                "skills_required": skills,
+                "salary_min": None,
+                "salary_max": None,
+            })
+            if len(jobs) >= max_results:
+                break
+
+        logger.info("JSearch: %d jobs for '%s'", len(jobs), query)
+        return jobs
+    except Exception as e:
+        logger.warning("JSearch scrape failed: %s", e)
+        return []
+
+
 REAL_SCRAPERS = {
     "remoteok": scrape_remoteok,
     "remotive": scrape_remotive,
     "naukri": scrape_naukri,
     "internshala": scrape_internshala,
+    "linkedin": scrape_jsearch,
+    "indeed": scrape_jsearch,
+    "glassdoor": scrape_jsearch,
 }
 
 
@@ -282,6 +359,7 @@ async def scrape_all_real(query: str = "python developer", max_results: int = 15
         scrape_real("remotive", query, max_results),
         scrape_real("naukri", query, max_results),
         scrape_real("internshala", query, max_results),
+        scrape_real("linkedin", query, max_results),
         return_exceptions=True,
     )
     merged = []

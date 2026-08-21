@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     SMTP_TLS: bool = True
     DIGEST_INTERVAL_HOURS: int = 24
     EXTRA_ADMIN_EMAILS: list = []
+    JSEARCH_API_KEY: str = ""
 
     class Config:
         env_file = ".env"
