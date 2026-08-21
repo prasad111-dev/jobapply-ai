@@ -2,18 +2,20 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { auth } from '@/lib/api';
-import { FiGrid, FiSearch, FiFileText, FiLayers, FiUser, FiLogOut, FiMenu, FiX, FiZap, FiShield } from 'react-icons/fi';
+import { auth, platforms as platformsApi } from '@/lib/api';
+import { FiGrid, FiSearch, FiFileText, FiLayers, FiUser, FiLogOut, FiMenu, FiX, FiZap, FiShield, FiCheckCircle } from 'react-icons/fi';
 
 export default function Navbar() {
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [connectedPlatforms, setConnectedPlatforms] = useState<any[]>([]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       auth.me().then(res => setUser(res.data)).catch(() => {});
+      platformsApi.connected().then(res => setConnectedPlatforms(res.data)).catch(() => {});
     }
   }, []);
 
@@ -71,6 +73,14 @@ export default function Navbar() {
           <div className="flex items-center gap-3">
             {user ? (
               <div className="hidden md:flex items-center gap-3">
+                {connectedPlatforms.length > 0 && (
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1.5">
+                    <FiCheckCircle className="text-sm" />
+                    {connectedPlatforms.filter((p: any) => p.is_connected).map((p: any) => (
+                      <span key={p.platform_name} className="capitalize">{p.platform_name}</span>
+                    )).reduce((prev: any, curr: any) => [prev, ', ', curr], [])}
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center text-sm font-bold">
                     {(user.full_name || user.username || 'U').charAt(0).toUpperCase()}

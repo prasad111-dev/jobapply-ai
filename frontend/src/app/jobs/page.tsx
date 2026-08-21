@@ -45,6 +45,22 @@ export default function JobsPage() {
     setLoading(false);
   };
 
+  const scrapeJobs = async () => {
+    setScraping(scrapePlatform);
+    try {
+      const res = await platformsApi.scrape(scrapePlatform, scrapeQuery, 10);
+      toast.success(res.data.message);
+      loadJobs();
+    } catch { toast.error('Scrape failed'); }
+    setScraping(null);
+  };
+
+  useEffect(() => {
+    if (!loading && jobs.length === 0 && connectedPlatforms.length === 0) {
+      scrapeJobs();
+    }
+  }, [loading, connectedPlatforms]);
+
   const toggleSelect = (id: number) => {
     const next = new Set(selected);
     next.has(id) ? next.delete(id) : next.add(id);
@@ -89,16 +105,6 @@ export default function JobsPage() {
     } catch { toast.error('Apply failed'); }
   };
 
-  const scrapeJobs = async () => {
-    setScraping(scrapePlatform);
-    try {
-      const res = await platformsApi.scrape(scrapePlatform, scrapeQuery, 10);
-      toast.success(res.data.message);
-      loadJobs();
-    } catch { toast.error('Scrape failed'); }
-    setScraping(null);
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
@@ -123,13 +129,26 @@ export default function JobsPage() {
           <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/25 to-violet-500/25 text-indigo-400 flex items-center justify-center"><FiDownload /></span>
           Scrape New Jobs
         </h2>
+        {connectedPlatforms.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {connectedPlatforms.map((p: any) => (
+              <span key={p.platform_name} className={`badge ${p.is_connected ? 'badge-green' : 'badge-red'} capitalize`}>
+                {p.is_connected ? '✓' : '✗'} {p.platform_name}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="grid md:grid-cols-[1fr_1.5fr_auto] gap-3 items-end">
           <div>
-            <label className="text-xs text-slate-400 mb-1.5 block font-medium uppercase tracking-wide">Platform</label>
+            <label className="text-xs text-slate-400 mb-1.5 block font-medium uppercase tracking-wide">Source</label>
             <select className="input-field" value={scrapePlatform} onChange={e => setScrapePlatform(e.target.value)}>
-              <option value="all">All real sources (Naukri + Internshala + RemoteOK + Remotive)</option>
+              <option value="all">All sources (RemoteOK + Remotive + Internshala + Naukri)</option>
+              <option value="remoteok">RemoteOK (remote jobs)</option>
+              <option value="remotive">Remotive (remote jobs)</option>
+              <option value="internshala">Internshala (internships)</option>
+              <option value="naukri">Naukri (may need CAPTCHA)</option>
               {connectedPlatforms.length > 0 && connectedPlatforms.map(p => (
-                <option key={p.platform_name} value={p.platform_name} className="capitalize">{p.platform_name}</option>
+                <option key={p.platform_name} value={p.platform_name} className="capitalize">{p.platform_name} (connected)</option>
               ))}
             </select>
           </div>
@@ -168,8 +187,9 @@ export default function JobsPage() {
         </div>
       ) : jobs.length === 0 ? (
         <div className="glass-card text-center py-16">
-          <p className="text-lg mb-3 text-slate-300">No jobs found</p>
-          <p className="text-sm text-slate-500">Click <span className="text-violet-400">Scrape Jobs</span> to pull live listings from RemoteOK, Remotive and Naukri.</p>
+          <p className="text-lg mb-3 text-slate-300">No jobs found yet</p>
+          <p className="text-sm text-slate-500 mb-4">Click <span className="text-violet-400 font-medium">Scrape Jobs</span> above to pull live listings from RemoteOK, Remotive, and Internshala.</p>
+          <p className="text-xs text-slate-600">Tip: Naukri requires CAPTCHA verification — use "All sources" for best results.</p>
         </div>
       ) : (
         <>
