@@ -263,10 +263,13 @@ async def scrape_jsearch(query: str = "python developer", max_results: int = 30)
     """JSearch API via OpenWeb Ninja — aggregates LinkedIn, Indeed, Glassdoor, ZipRecruiter.
 
     Free tier: 200 requests/month, no credit card.
-    Set JSEARCH_API_KEY env var to enable. Falls back gracefully if not set.
+    Set JSEARCH_API_KEY env var or backend/.env to enable. Falls back gracefully if not set.
     """
-    import os
-    api_key = os.environ.get("JSEARCH_API_KEY", "")
+    try:
+        from app.core.config import get_settings
+        api_key = get_settings().JSEARCH_API_KEY
+    except Exception:
+        api_key = os.environ.get("JSEARCH_API_KEY", "")
     if not api_key:
         logger.info("JSearch: JSEARCH_API_KEY not set, skipping")
         return []
