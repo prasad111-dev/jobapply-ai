@@ -40,7 +40,7 @@ export default function JobsPage() {
   const loadJobs = async (searchQuery?: string) => {
     setLoading(true);
     try {
-      const res = await jobsApi.list({ search: searchQuery || undefined, limit: 50 });
+      const res = await jobsApi.list({ search: searchQuery || undefined, limit: 200 });
       setJobs(res.data);
     } catch { toast.error('Failed to load jobs'); }
     setLoading(false);

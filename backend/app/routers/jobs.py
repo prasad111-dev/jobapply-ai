@@ -54,7 +54,7 @@ async def get_jobs(
     platform: Optional[str] = None,
     min_match: float = 0.0,
     skip: int = 0,
-    limit: int = 50,
+    limit: int = 200,
     current_user: Doc = Depends(get_current_user),
     db=Depends(get_db)
 ):
