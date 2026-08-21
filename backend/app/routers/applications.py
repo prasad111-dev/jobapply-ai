@@ -307,10 +307,13 @@ async def apply_to_jobs(request: ApplyRequest, background_tasks: BackgroundTasks
                     continue
 
                 if needs_browser:
-                    await _schedule_apply(background_tasks, result, current_user.id, db)
-                    pending += 1
+                    scheduled = await _schedule_apply(background_tasks, result, current_user.id, db)
+                    if scheduled:
+                        successful += 1
+                    else:
+                        pending += 1
                 else:
-                    pending += 1
+                    successful += 1
             else:
                 failed += 1
         except Exception as e:
@@ -389,10 +392,13 @@ async def apply_to_matching_jobs(request: ApplyMatchingRequest, background_tasks
             if res:
                 applications_done.append(res)
                 if res["needs_browser"]:
-                    await _schedule_apply(background_tasks, res, current_user.id, db)
-                    pending += 1
+                    scheduled = await _schedule_apply(background_tasks, res, current_user.id, db)
+                    if scheduled:
+                        successful += 1
+                    else:
+                        pending += 1
                 else:
-                    pending += 1
+                    successful += 1
             else:
                 failed += 1
         except Exception as e:
