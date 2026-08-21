@@ -67,8 +67,8 @@ export const platforms = {
   testConnection: (name: string, username: string, password: string) =>
     api.post(`/platforms/${name}/test-connection`, { username, password }),
   disconnect: (name: string) => api.delete(`/platforms/${name}`),
-  scrape: (platformName: string, query: string, maxResults?: number) =>
-    api.post(`/platforms/scrape?platform_name=${platformName}`, { query, max_results: maxResults || 20 }),
+  scrape: (platformName: string, query: string, maxResults?: number, location?: string) =>
+    api.post(`/platforms/scrape?platform_name=${platformName}`, { query, max_results: maxResults || 50, location: location || '' }),
   digestPrefs: () => api.get('/platforms/preferences/digest'),
   setDigestPrefs: (data: any) => api.put('/platforms/preferences/digest', data),
   runDigest: () => api.post('/platforms/digest/run'),

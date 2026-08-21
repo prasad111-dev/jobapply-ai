@@ -42,7 +42,7 @@ class PlatformConfigResponse(BaseModel):
 class ScrapeRequest(BaseModel):
     query: str = "python developer"
     location: str = ""
-    max_results: int = 20
+    max_results: int = 50
 
 SUPPORTED_PLATFORMS = [
     {"name": "indeed", "display_name": "Indeed", "url": "https://indeed.com", "difficulty_level": "medium", "auth_type": "credentials"},
@@ -270,7 +270,10 @@ async def scrape_jobs_from_platform(
 
     try:
         if platform == "all":
-            scraped = await scrape_all_real(request.query, request.max_results)
+            query = request.query
+            if request.location:
+                query = query + " " + request.location
+            scraped = await scrape_all_real(query, request.max_results)
         else:
             scraped = await scrape_real(platform, request.query, request.max_results)
     except Exception as e:

@@ -259,7 +259,7 @@ async def scrape_naukri(query: str = "python developer", max_results: int = 30) 
     return await scrape_naukri_browser(query, max_results)
 
 
-async def scrape_jsearch(query: str = "python developer", max_results: int = 30) -> list:
+async def scrape_jsearch(query: str = "python developer", max_results: int = 30, country: str = "in", num_pages: int = 3) -> list:
     """JSearch API via OpenWeb Ninja — aggregates LinkedIn, Indeed, Glassdoor, ZipRecruiter.
 
     Free tier: 200 requests/month, no credit card.
@@ -282,9 +282,9 @@ async def scrape_jsearch(query: str = "python developer", max_results: int = 30)
         }
         params = {
             "query": query,
-            "num_pages": "1",
+            "num_pages": str(num_pages),
             "date_posted": "week",
-            "country": "in",
+            "country": country,
             "language": "en",
         }
         async with httpx.AsyncClient(follow_redirects=True, timeout=25) as client:
@@ -356,14 +356,20 @@ async def scrape_real(platform_name: str, query: str = "", max_results: int = 30
     return await scraper(query or "python developer", max_results)
 
 
-async def scrape_all_real(query: str = "python developer", max_results: int = 15) -> list:
-    """Scrape from every working real source and merge. Handles failures gracefully."""
+async def scrape_all_real(query: str = "python developer", max_results: int = 30) -> list:
+    """Scrape from every working real source and merge. Handles failures gracefully.
+
+    Each source gets up to max_results jobs. JSearch fetches 3 pages for more results.
+    Also runs additional JSearch queries for Indeed and Glassdoor publisher sources.
+    """
     results = await asyncio.gather(
         scrape_real("remoteok", query, max_results),
         scrape_real("remotive", query, max_results),
         scrape_real("naukri", query, max_results),
         scrape_real("internshala", query, max_results),
-        scrape_real("linkedin", query, max_results),
+        scrape_jsearch(query, max_results, country="in", num_pages=3),
+        scrape_jsearch(query + " remote", max_results, country="us", num_pages=2),
+        scrape_jsearch(query + " experienced", max_results, country="in", num_pages=2),
         return_exceptions=True,
     )
     merged = []

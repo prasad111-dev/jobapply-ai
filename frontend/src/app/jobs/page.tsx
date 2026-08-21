@@ -16,6 +16,7 @@ export default function JobsPage() {
   const [connectedPlatforms, setConnectedPlatforms] = useState<any[]>([]);
   const [scrapePlatform, setScrapePlatform] = useState('all');
   const [scrapeQuery, setScrapeQuery] = useState('python developer');
+  const [scrapeLocation, setScrapeLocation] = useState('');
   const [readiness, setReadiness] = useState<any>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -48,7 +49,7 @@ export default function JobsPage() {
   const scrapeJobs = async () => {
     setScraping(scrapePlatform);
     try {
-      const res = await platformsApi.scrape(scrapePlatform, scrapeQuery, 10);
+      const res = await platformsApi.scrape(scrapePlatform, scrapeQuery, 50, scrapeLocation);
       toast.success(res.data.message);
       loadJobs();
     } catch { toast.error('Scrape failed'); }
@@ -138,22 +139,26 @@ export default function JobsPage() {
             ))}
           </div>
         )}
-        <div className="grid md:grid-cols-[1fr_1.5fr_auto] gap-3 items-end">
+        <div className="grid md:grid-cols-[1fr_1fr_1.5fr_auto] gap-3 items-end">
           <div>
             <label className="text-xs text-slate-400 mb-1.5 block font-medium uppercase tracking-wide">Source</label>
             <select className="input-field" value={scrapePlatform} onChange={e => setScrapePlatform(e.target.value)}>
-              <option value="all">All sources (RemoteOK + Remotive + Internshala + JSearch)</option>
-              <option value="remoteok">RemoteOK (remote jobs)</option>
-              <option value="remotive">Remotive (remote jobs)</option>
-              <option value="internshala">Internshala (internships)</option>
+              <option value="all">All sources (Best coverage)</option>
               <option value="linkedin">LinkedIn (via JSearch)</option>
               <option value="indeed">Indeed (via JSearch)</option>
               <option value="glassdoor">Glassdoor (via JSearch)</option>
+              <option value="remoteok">RemoteOK (remote jobs)</option>
+              <option value="remotive">Remotive (remote jobs)</option>
+              <option value="internshala">Internshala (internships)</option>
               <option value="naukri">Naukri (may need CAPTCHA)</option>
               {connectedPlatforms.length > 0 && connectedPlatforms.map(p => (
                 <option key={p.platform_name} value={p.platform_name} className="capitalize">{p.platform_name} (connected)</option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1.5 block font-medium uppercase tracking-wide">Location</label>
+            <input className="input-field" value={scrapeLocation} onChange={e => setScrapeLocation(e.target.value)} placeholder="e.g. Mumbai, Delhi, Remote" onKeyDown={e => e.key === 'Enter' && scrapeJobs()} />
           </div>
           <div>
             <label className="text-xs text-slate-400 mb-1.5 block font-medium uppercase tracking-wide">Search Query</label>
