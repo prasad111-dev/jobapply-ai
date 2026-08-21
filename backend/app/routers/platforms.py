@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+import asyncio
 from app.core.database import platform_connections, jobs, next_id, get_db
 from app.routers.auth import get_current_user
 from app.core.mongo_doc import Doc
@@ -91,8 +92,11 @@ async def test_connection(platform_name: str, data: TestConnectionRequest, curre
         return {"success": True, "message": "Playwright not available — credentials saved without verification.", "verified": False, "session_saved": False}
 
     try:
-        result = await browser_automation.test_platform_connection(
-            platform_name, data.username, data.password, user_id=current_user.id
+        result = await asyncio.wait_for(
+            browser_automation.test_platform_connection(
+                platform_name, data.username, data.password, user_id=current_user.id
+            ),
+            timeout=45,
         )
         if result.get("success"):
             return {
