@@ -272,23 +272,24 @@ async def scrape_jsearch(query: str = "python developer", max_results: int = 30)
         return []
 
     try:
-        url = "https://jsearch.p.rapidapi.com/search"
+        url = "https://api.openwebninja.com/jsearch/search-v2"
         headers = {
-            "X-RapidAPI-Key": api_key,
-            "X-RapidAPI-Host": "jsearch.p.rapidapi.com",
+            "X-API-Key": api_key,
+            "Accept": "application/json",
         }
         params = {
             "query": query,
-            "page": "1",
             "num_pages": "1",
             "date_posted": "week",
+            "country": "in",
+            "language": "en",
         }
         async with httpx.AsyncClient(follow_redirects=True, timeout=25) as client:
             resp = await client.get(url, headers=headers, params=params)
             resp.raise_for_status()
             data = resp.json()
 
-        raw_jobs = data.get("data", [])
+        raw_jobs = data.get("data", {}).get("jobs", [])
         jobs = []
         for item in raw_jobs:
             if not isinstance(item, dict):
@@ -300,7 +301,7 @@ async def scrape_jsearch(query: str = "python developer", max_results: int = 30)
             url = (item.get("job_apply_link") or item.get("job_google_link") or "").strip()
             desc = (item.get("job_description") or "")[:2000]
             source = (item.get("job_publisher") or "linkedin").lower()
-            emp_type = (item.get("job_employment_type") or "FULLTIME").replace("FULLTIME", "full-time").replace("PARTTIME", "part-time").replace("INTERNSHIP", "internship").replace("CONTRACTOR", "contract").lower()
+            emp_type = (item.get("job_employment_type") or "full-time").lower()
 
             if not title or not url:
                 continue
