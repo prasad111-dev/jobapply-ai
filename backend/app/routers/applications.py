@@ -60,16 +60,17 @@ async def _bg_apply(application_id: int, platform: str, job_url: str, username: 
         login_ok = result.get("login_success", False)
         apply_data = result.get("apply_result", {}) or {}
         error = result.get("error")
+        filled = []
 
         if login_ok and apply_data:
             apply_status = apply_data.get("status", "failed")
-            filled = apply_data.get("filled_fields", [])
+            filled = apply_data.get("filled_fields", []) or []
             if apply_status == "submitted":
                 new_status = "submitted"
-                note = f"Applied via browser automation! Filled: {', '.join(filled)}"
+                note = "Applied via browser automation! Filled: " + ", ".join(str(f) for f in filled)
             elif apply_status == "form_filled":
                 new_status = "pending"
-                note = f"Form auto-filled ({', '.join(filled)}). Submit button not found. Please submit manually at {job_url}"
+                note = f"Form auto-filled ({', '.join(str(f) for f in filled)}). Submit button not found. Please submit manually at {job_url}"
             else:
                 new_status = "failed"
                 note = f"Apply failed: {apply_data.get('error', 'Unknown error')}"
