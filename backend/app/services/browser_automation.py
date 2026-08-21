@@ -822,17 +822,20 @@ class BrowserAutomation:
             raise RuntimeError("No Chrome/Chromium found on system")
         if not self.browser:
             self._playwright = await async_playwright().start()
-            self.browser = await self._playwright.chromium.launch(
-                headless=True,
-                executable_path=self.chrome_path,
-                args=[
-                    '--no-sandbox', '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage', '--disable-gpu',
-                    '--disable-blink-features=AutomationControlled',
-                    '--disable-quic',
-                    '--disable-features=NetworkService',
-                    '--disable-http2',
-                ]
+            self.browser = await asyncio.wait_for(
+                self._playwright.chromium.launch(
+                    headless=True,
+                    executable_path=self.chrome_path,
+                    args=[
+                        '--no-sandbox', '--disable-setuid-sandbox',
+                        '--disable-dev-shm-usage', '--disable-gpu',
+                        '--disable-blink-features=AutomationControlled',
+                        '--disable-quic',
+                        '--disable-features=NetworkService',
+                        '--disable-http2',
+                    ]
+                ),
+                timeout=30,
             )
             self.context = await self.browser.new_context(
                 user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',

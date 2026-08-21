@@ -45,17 +45,15 @@ export default function PlatformsPage() {
     try {
       const test = await platformsApi.testConnection(platformName, credForm.username, credForm.password);
       const v = test.data;
-      if (v.success) {
-        await platformsApi.connect({ platform_name: platformName, username: credForm.username, password: credForm.password });
+      if (v.verified) {
         setVerifyMsg({ name: platformName, ok: true, msg: v.message || 'Verified & connected!' });
-        setShowForm(null); setCredForm({ username: '', password: '' });
-        toast.success(`Verified & connected to ${platformName}!`);
-        loadData();
       } else {
-        setVerifyMsg({ name: platformName, ok: false, msg: v.message || 'Login failed. Check your credentials.' });
-        toast.error(v.message || 'Verification failed');
+        setVerifyMsg({ name: platformName, ok: true, msg: v.message || 'Credentials saved. Verification was skipped.' });
       }
-    } catch (err: any) { toast.error(err.response?.data?.detail || 'Verification error'); }
+      setShowForm(null); setCredForm({ username: '', password: '' });
+      toast.success(`Connected to ${platformName}${v.verified ? ' (verified)' : ' (credentials saved)'}`);
+      loadData();
+    } catch (err: any) { toast.error(err.response?.data?.detail || 'Connection failed'); }
     setConnecting(null);
   };
 

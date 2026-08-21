@@ -75,24 +75,57 @@ async def test_connection(platform_name: str, data: TestConnectionRequest, curre
     """Actually log into the platform with the given credentials to verify they work.
 
     On success, saves the session so auto-apply works without re-entering the password.
+    If browser verification is unavailable, saves credentials anyway (unverified).
     """
     from app.services.browser_automation import browser_automation, PLAYWRIGHT_AVAILABLE
 
     if not PLAYWRIGHT_AVAILABLE:
-        return {"success": True, "message": f"Playwright not installed - stored credentials without verification.", "verified": False}
+        # Save credentials without verification
+        existing_conn = await platform_connections.find_one({"user_id": current_user.id, "platform_name": platform_name})
+        if existing_conn:
+            await platform_connections.update_one({"_id": existing_conn["_id"]}, {"$set": {"username": data.username, "auth_token": encrypt_secret(data.password), "is_connected": True, "last_synced": datetime.utcnow()}})
+        else:
+            conn_id = await next_id("platform_connections")
+            conn_doc = to_doc({"_id": conn_id, "id": conn_id, "user_id": current_user.id, "platform_name": platform_name, "username": data.username, "auth_token": encrypt_secret(data.password), "is_connected": True, "last_synced": datetime.utcnow()})
+            await platform_connections.insert_one(conn_doc)
+        return {"success": True, "message": "Playwright not available — credentials saved without verification.", "verified": False, "session_saved": False}
 
     try:
         result = await browser_automation.test_platform_connection(
             platform_name, data.username, data.password, user_id=current_user.id
         )
-        return {
-            "success": result.get("success", False),
-            "verified": result.get("login_success", False),
-            "session_saved": result.get("session_saved", False),
-            "message": result.get("message", ""),
-        }
+        if result.get("success"):
+            return {
+                "success": True,
+                "verified": True,
+                "session_saved": result.get("session_saved", False),
+                "message": result.get("message", ""),
+            }
+        else:
+            # Verification failed but still save credentials so the user isn't stuck
+            existing_conn = await platform_connections.find_one({"user_id": current_user.id, "platform_name": platform_name})
+            if existing_conn:
+                await platform_connections.update_one({"_id": existing_conn["_id"]}, {"$set": {"username": data.username, "auth_token": encrypt_secret(data.password), "is_connected": True, "last_synced": datetime.utcnow()}})
+            else:
+                conn_id = await next_id("platform_connections")
+                conn_doc = to_doc({"_id": conn_id, "id": conn_id, "user_id": current_user.id, "platform_name": platform_name, "username": data.username, "auth_token": encrypt_secret(data.password), "is_connected": True, "last_synced": datetime.utcnow()})
+                await platform_connections.insert_one(conn_doc)
+            return {
+                "success": True,
+                "verified": False,
+                "session_saved": False,
+                "message": f"Credentials saved. Login verification failed: {result.get('message', 'Unknown error')}. You can still try auto-apply — it may work if your session is valid.",
+            }
     except Exception as e:
-        return {"success": False, "verified": False, "session_saved": False, "message": f"Connection test failed: {str(e)[:200]}"}
+        # Browser launch timed out or crashed — save credentials anyway
+        existing_conn = await platform_connections.find_one({"user_id": current_user.id, "platform_name": platform_name})
+        if existing_conn:
+            await platform_connections.update_one({"_id": existing_conn["_id"]}, {"$set": {"username": data.username, "auth_token": encrypt_secret(data.password), "is_connected": True, "last_synced": datetime.utcnow()}})
+        else:
+            conn_id = await next_id("platform_connections")
+            conn_doc = to_doc({"_id": conn_id, "id": conn_id, "user_id": current_user.id, "platform_name": platform_name, "username": data.username, "auth_token": encrypt_secret(data.password), "is_connected": True, "last_synced": datetime.utcnow()})
+            await platform_connections.insert_one(conn_doc)
+        return {"success": True, "verified": False, "session_saved": False, "message": f"Credentials saved. Browser verification unavailable on this server: {str(e)[:120]}"}
 
 
 @router.post("/connect")
