@@ -71,6 +71,7 @@ async def _bg_apply(application_id: int, platform: str, job_url: str, username: 
             elif apply_status == "form_filled":
                 new_status = "pending"
                 note = f"Form auto-filled ({', '.join(str(f) for f in filled)}). Submit button not found. Please submit manually at {job_url}"
+                logger.warning(f"form_filled for {job_url} — submit button NOT found. Filled fields: {filled}")
             else:
                 new_status = "failed"
                 note = f"Apply failed: {apply_data.get('error', 'Unknown error')}"
