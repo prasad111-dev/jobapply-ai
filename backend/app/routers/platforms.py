@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
@@ -9,8 +9,10 @@ from app.core.mongo_doc import Doc
 from app.models.platform import to_doc
 from app.models.job import to_doc as job_to_doc
 from app.core.encryption import encrypt_secret, decrypt_secret
+import logging
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 class PlatformConnect(BaseModel):
     platform_name: str
@@ -307,50 +309,63 @@ async def scrape_jobs_from_platform(
 @router.post("/scrape-all")
 async def scrape_all_categories_endpoint(
     current_user: Doc = Depends(get_current_user),
+    background_tasks: BackgroundTasks = None,
 ):
-    """Scrape ALL job categories from ALL platforms.
+    """Scrape ALL job categories from ALL platforms in background.
 
-    This pulls software, marketing, sales, design, HR, finance, education,
-    healthcare, and more — from LinkedIn, Indeed, Glassdoor, Internshala,
-    RemoteOK, Remotive, and 20+ other sources.
+    Returns immediately. Jobs appear in the Jobs list as they are scraped.
     """
-    from app.services.category_scraper import scrape_all_categories, save_jobs_to_db
+    from app.services.real_scraper import scrape_all_real
 
-    try:
-        result = await scrape_all_categories(max_per_source=50)
-        total_scraped = result.get("total", 0)
-        summary = result.get("summary", {})
+    total_before = await jobs.count_documents({})
 
-        # The scrapers return jobs but the scrape endpoint saves them
-        # Let's re-scrape via the normal path for each source
-        from app.services.real_scraper import scrape_real, scrape_all_real
-        all_jobs = await scrape_all_real("python developer", 50)
-        saved = 0
-        seen_urls = set()
-        existing_cursor = jobs.find({}, {"platform_url": 1})
-        existing_urls = {doc["platform_url"] async for doc in existing_cursor if doc.get("platform_url")}
-        for job_data in all_jobs:
-            url = job_data.get("platform_url", "")
-            if not url or url in seen_urls or url in existing_urls:
-                continue
-            seen_urls.add(url)
-            existing_urls.add(url)
-            job_id = await next_id("jobs")
-            doc = job_to_doc(job_data)
-            doc["_id"] = job_id
-            doc["id"] = job_id
-            await jobs.insert_one(doc)
-            saved += 1
+    async def _bg_scrape():
+        try:
+            queries = [
+                "software engineer", "frontend developer", "backend developer",
+                "data scientist", "digital marketing", "sales executive",
+                "graphic designer", "ui ux designer", "project manager",
+                "accountant", "human resources", "customer support",
+                "content writer", "devops engineer", "cloud engineer",
+                "business development", "financial analyst", "operations manager",
+                "teacher", "nurse", "internship", "fresher",
+                "remote software", "work from home",
+                "mechanical engineer", "civil engineer", "electrical engineer",
+                "lawyer", "journalist", "chef", "hotel management",
+            ]
+            seen_urls = set()
+            total_saved = 0
+            for query in queries:
+                try:
+                    scraped = await scrape_all_real(query, 30)
+                    for job_data in scraped:
+                        url = job_data.get("platform_url", "")
+                        if not url or url in seen_urls:
+                            continue
+                        existing = await jobs.find_one({"platform_url": url})
+                        if existing or url in seen_urls:
+                            continue
+                        seen_urls.add(url)
+                        job_id = await next_id("jobs")
+                        doc = job_to_doc(job_data)
+                        doc["_id"] = job_id
+                        doc["id"] = job_id
+                        await jobs.insert_one(doc)
+                        total_saved += 1
+                except Exception as e:
+                    logger.warning("Scrape query '%s' failed: %s", query, e)
+            logger.info("Background scrape complete: %d new jobs saved", total_saved)
+        except Exception as e:
+            logger.error("Background scrape-all failed: %s", e)
 
-        total_in_db = await jobs.count_documents({})
+    if background_tasks:
+        background_tasks.add_task(_bg_scrape)
 
-        return {
-            "success": True,
-            "message": f"Scraped {saved} new jobs! DB now has {total_in_db} total jobs from all categories.",
-            "scraped_count": saved,
-            "total_in_db": total_in_db,
-            "summary": summary,
-        }
+    return {
+        "success": True,
+        "message": "Background scrape started! Jobs will appear as they are loaded. Refresh the page in 1-2 minutes.",
+        "total_before": total_before,
+    }
     except Exception as e:
         return {
             "success": False,

@@ -76,13 +76,14 @@ export default function JobsPage() {
 
   const scrapeAllCategories = async () => {
     setScrapingAll(true);
-    toast.loading('Scraping ALL job categories from ALL platforms...', { id: 'scrape-all' });
     try {
       const res = await platformsApi.scrapeAll();
       const data = res.data;
-      toast.success(`Done! ${data.message}`, { id: 'scrape-all' });
-      loadJobs();
-    } catch { toast.error('Full scrape failed', { id: 'scrape-all' }); }
+      toast.success(data.message || 'Scrape started! Jobs will appear shortly.', { duration: 5000 });
+      setTimeout(() => loadJobs(), 5000);
+      setTimeout(() => loadJobs(), 15000);
+      setTimeout(() => loadJobs(), 30000);
+    } catch { toast.error('Full scrape failed'); }
     setScrapingAll(false);
   };
 
