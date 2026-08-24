@@ -86,6 +86,24 @@ async def startup():
     except Exception as e:
         logger.error(f"Scheduler start error: {e}")
 
+    try:
+        from app.services.category_scraper import background_scrape_all
+        import asyncio
+
+        async def _startup_scrape():
+            try:
+                from app.services.category_scraper import scrape_all_categories, save_jobs_to_db
+                result = await scrape_all_categories(max_per_source=50)
+                total = result.get("total", 0)
+                logger.info("Startup scrape found %d jobs", total)
+            except Exception as e:
+                logger.error("Startup scrape failed: %s", e)
+
+        asyncio.create_task(_startup_scrape())
+        logger.info("Background category scraper started")
+    except Exception as e:
+        logger.error("Startup scraper error: %s", e)
+
 @app.on_event("shutdown")
 async def shutdown():
     logger.info("Shutting down JobApply AI Platform...")
