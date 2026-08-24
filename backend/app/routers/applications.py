@@ -58,20 +58,41 @@ async def _bg_apply(application_id: int, platform: str, job_url: str, username: 
             timeout=settings.BROWSER_TIMEOUT_SECONDS,
         )
         login_ok = result.get("login_success", False)
-        apply_data = result.get("apply_result", {}) or {}
+        apply_data = result.get("apply_result") or {}
         error = result.get("error")
         filled = []
 
         if login_ok and apply_data:
             apply_status = apply_data.get("status", "failed")
-            filled = apply_data.get("filled_fields", []) or []
+            filled = apply_data.get("filled_fields") or []
             if apply_status == "submitted":
                 new_status = "submitted"
                 note = "Applied via browser automation! Filled: " + ", ".join(str(f) for f in filled)
             elif apply_status == "form_filled":
-                new_status = "pending"
-                note = f"Form auto-filled ({', '.join(str(f) for f in filled)}). Submit button not found. Please submit manually at {job_url}"
-                logger.warning(f"form_filled for {job_url} — submit button NOT found. Filled fields: {filled}")
+                # Retry once with a fresh page
+                logger.warning(f"form_filled for {job_url} — retrying submit. Filled: {filled}")
+                try:
+                    result2 = await asyncio.wait_for(
+                        browser_automation.apply_to_job_realtime(
+                            platform=platform, job_url=job_url,
+                            username=username, password=password,
+                            user_profile=user_profile, resume_path=resume_path,
+                            cover_letter=cover_letter, auto_answers=auto_answers,
+                            user_id=user_id,
+                        ),
+                        timeout=settings.BROWSER_TIMEOUT_SECONDS,
+                    )
+                    apply_data2 = result2.get("apply_result") or {}
+                    if apply_data2.get("status") == "submitted":
+                        new_status = "submitted"
+                        filled = apply_data2.get("filled_fields") or filled
+                        note = "Applied via retry! Filled: " + ", ".join(str(f) for f in filled)
+                    else:
+                        new_status = "pending"
+                        note = f"Form auto-filled ({', '.join(str(f) for f in filled)}). Submit button not found. Please submit manually at {job_url}"
+                except:
+                    new_status = "pending"
+                    note = f"Form auto-filled ({', '.join(str(f) for f in filled)}). Submit button not found. Please submit manually at {job_url}"
             else:
                 new_status = "failed"
                 note = f"Apply failed: {apply_data.get('error', 'Unknown error')}"

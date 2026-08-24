@@ -492,100 +492,10 @@ class PlatformAutomation:
             except:
                 pass
 
-            submit_selectors = [
-                'button[class*="submitApplication"]',
-                'button[class*="submitButton"]',
-                'button:has-text("Submit Application")',
-                'button:has-text("Submit")',
-                'button:has-text("Send Application")',
-                'button:has-text("Save & Submit")',
-                'button:has-text("Apply")',
-                'button[type="submit"]',
-                'input[type="submit"]',
-                '#submit',
-                'button.btn-primary',
-                'div[role="button"]:has-text("Submit")',
-                'div[role="button"]:has-text("Apply")',
-                'a:has-text("Submit")',
-                'a:has-text("Apply Now")',
-            ]
-            submitted = False
-            for sel in submit_selectors:
-                try:
-                    el = await page.wait_for_selector(sel, timeout=2000)
-                    if el and await el.is_visible():
-                        await el.scroll_into_view_if_needed()
-                        await asyncio.sleep(random.uniform(0.5, 1))
-                        await el.click()
-                        result["status"] = "submitted"
-                        submitted = True
-                        await asyncio.sleep(random.uniform(3, 5))
-                        break
-                except:
-                    continue
-
-            # Try inside iframes too
-            if not submitted:
-                try:
-                    for frame in page.frames:
-                        if frame == page.main_frame:
-                            continue
-                        for sel in submit_selectors[:8]:
-                            try:
-                                el = await frame.wait_for_selector(sel, timeout=2000)
-                                if el:
-                                    await el.click()
-                                    result["status"] = "submitted"
-                                    submitted = True
-                                    await asyncio.sleep(3)
-                                    break
-                            except:
-                                continue
-                        if submitted:
-                            break
-                except:
-                    pass
-
-            # Generic fallback: find any visible button with submit-like text
-            if not submitted:
-                try:
-                    buttons = await page.query_selector_all('button, a[role="button"], input[type="submit"], div[role="button"]')
-                    for btn in buttons:
-                        try:
-                            text = (await btn.inner_text()).strip().lower()
-                            if any(kw in text for kw in ['submit', 'send', 'apply now', 'apply', 'confirm', 'save']):
-                                if await btn.is_visible():
-                                    await btn.scroll_into_view_if_needed()
-                                    await asyncio.sleep(0.5)
-                                    await btn.click()
-                                    result["status"] = "submitted"
-                                    submitted = True
-                                    await asyncio.sleep(3)
-                                    break
-                        except:
-                            continue
-                except:
-                    pass
-
-            # Last resort: JS click
-            if not submitted:
-                try:
-                    await page.evaluate('''() => {
-                        const btns = document.querySelectorAll('button, input[type="submit"], a.btn');
-                        for (const b of btns) {
-                            const t = (b.innerText || b.value || '').toLowerCase();
-                            if (t.includes('submit') || t.includes('apply')) {
-                                b.click();
-                                return true;
-                            }
-                        }
-                        return false;
-                    }''')
-                    result["status"] = "submitted"
-                    submitted = True
-                    await asyncio.sleep(3)
-                except:
-                    pass
+            submitted = await PlatformAutomation._try_submit(page)
+            if submitted:
+                result["status"] = "submitted"
+                await asyncio.sleep(random.uniform(3, 5))
 
             if result["status"] == "failed":
                 if result["filled_fields"]:
@@ -740,101 +650,10 @@ class PlatformAutomation:
             except:
                 pass
 
-            submit_selectors = [
-                'button[class*="submit"]',
-                'button[type="submit"]',
-                'button:has-text("Submit")',
-                'button:has-text("Send Application")',
-                'button:has-text("Apply")',
-                'button:has-text("Submit Application")',
-                'input[type="submit"]',
-                '#submit',
-                '.submit-btn',
-                'button.btn-primary',
-                'button.btn-success',
-                'div[role="button"]:has-text("Submit")',
-                'div[role="button"]:has-text("Apply")',
-                'a:has-text("Submit")',
-                'a:has-text("Apply Now")',
-            ]
-            submitted = False
-            for sel in submit_selectors:
-                try:
-                    el = await page.wait_for_selector(sel, timeout=2000)
-                    if el and await el.is_visible():
-                        await el.scroll_into_view_if_needed()
-                        await asyncio.sleep(random.uniform(0.5, 1))
-                        await el.click()
-                        result["status"] = "submitted"
-                        submitted = True
-                        await asyncio.sleep(random.uniform(3, 5))
-                        break
-                except:
-                    continue
-
-            # Try inside iframes too (some forms load in iframes)
-            if not submitted:
-                try:
-                    frames = page.frames
-                    for frame in frames:
-                        if frame == page.main_frame:
-                            continue
-                        for sel in submit_selectors[:8]:
-                            try:
-                                el = await frame.wait_for_selector(sel, timeout=2000)
-                                if el:
-                                    await el.click()
-                                    result["status"] = "submitted"
-                                    submitted = True
-                                    await asyncio.sleep(3)
-                                    break
-                            except:
-                                continue
-                        if submitted:
-                            break
-                except:
-                    pass
-
-            # Generic fallback: find any visible button/link with submit-like text
-            if not submitted:
-                try:
-                    buttons = await page.query_selector_all('button, a[role="button"], input[type="submit"], div[role="button"]')
-                    for btn in buttons:
-                        try:
-                            text = (await btn.inner_text()).strip().lower()
-                            if any(kw in text for kw in ['submit', 'send', 'apply now', 'apply', 'confirm']):
-                                if await btn.is_visible():
-                                    await btn.scroll_into_view_if_needed()
-                                    await asyncio.sleep(0.5)
-                                    await btn.click()
-                                    result["status"] = "submitted"
-                                    submitted = True
-                                    await asyncio.sleep(3)
-                                    break
-                        except:
-                            continue
-                except:
-                    pass
-
-            # Last resort: try JS click on submit-type elements
-            if not submitted:
-                try:
-                    await page.evaluate('''() => {
-                        const btns = document.querySelectorAll('button, input[type="submit"], a.btn');
-                        for (const b of btns) {
-                            const t = (b.innerText || b.value || '').toLowerCase();
-                            if (t.includes('submit') || t.includes('apply')) {
-                                b.click();
-                                return true;
-                            }
-                        }
-                        return false;
-                    }''')
-                    result["status"] = "submitted"
-                    submitted = True
-                    await asyncio.sleep(3)
-                except:
-                    pass
+            submitted = await PlatformAutomation._try_submit(page)
+            if submitted:
+                result["status"] = "submitted"
+                await asyncio.sleep(random.uniform(3, 5))
 
             if result["status"] == "failed":
                 if result["filled_fields"]:
@@ -848,6 +667,100 @@ class PlatformAutomation:
             logger.error(f"Internshala apply error: {e}")
 
         return result
+
+    @staticmethod
+    async def _try_submit(page: Page) -> bool:
+        """Aggressive multi-strategy submit. Returns True if something was clicked."""
+        submitted = False
+
+        # Strategy 1: CSS selectors
+        submit_selectors = [
+            'button[class*="submit"]', 'button[type="submit"]',
+            'button:has-text("Submit")', 'button:has-text("Send Application")',
+            'button:has-text("Submit Application")', 'button:has-text("Apply")',
+            'button:has-text("Send")', 'button:has-text("Confirm")',
+            'button:has-text("Save & Submit")', 'button:has-text("Apply Now")',
+            'button:has-text("Quick Apply")', 'button:has-text("Easy Apply")',
+            'input[type="submit"]', '#submit', '.submit-btn',
+            'button.btn-primary', 'button.btn-success',
+            'div[role="button"]:has-text("Submit")', 'div[role="button"]:has-text("Apply")',
+            'a:has-text("Submit")', 'a:has-text("Apply Now")',
+        ]
+        for sel in submit_selectors:
+            try:
+                el = await page.wait_for_selector(sel, timeout=1500)
+                if el and await el.is_visible():
+                    await el.scroll_into_view_if_needed()
+                    await asyncio.sleep(random.uniform(0.3, 0.7))
+                    await el.click()
+                    return True
+            except:
+                continue
+
+        # Strategy 2: iframes
+        try:
+            for frame in page.frames:
+                if frame == page.main_frame:
+                    continue
+                for sel in submit_selectors[:10]:
+                    try:
+                        el = await frame.wait_for_selector(sel, timeout=1500)
+                        if el:
+                            await el.click()
+                            return True
+                    except:
+                        continue
+        except:
+            pass
+
+        # Strategy 3: scan ALL visible clickable elements for submit-like text
+        try:
+            clickable = await page.query_selector_all(
+                'button, a[role="button"], input[type="submit"], div[role="button"], a.btn, span[role="button"]'
+            )
+            for btn in clickable:
+                try:
+                    text = (await btn.inner_text()).strip().lower()
+                    if any(kw in text for kw in ['submit', 'send', 'apply', 'confirm', 'save', 'next']):
+                        if await btn.is_visible():
+                            await btn.scroll_into_view_if_needed()
+                            await asyncio.sleep(0.3)
+                            await btn.click()
+                            return True
+                except:
+                    continue
+        except:
+            pass
+
+        # Strategy 4: JS — click the LAST visible button on the page (almost always submit)
+        try:
+            clicked = await page.evaluate('''() => {
+                const allBtns = [...document.querySelectorAll('button, input[type="submit"], a[role="button"], div[role="button"]')];
+                const visible = allBtns.filter(b => {
+                    const r = b.getBoundingClientRect();
+                    const style = window.getComputedStyle(b);
+                    return r.width > 0 && r.height > 0 && style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+                });
+                if (visible.length > 0) {
+                    visible[visible.length - 1].click();
+                    return true;
+                }
+                return false;
+            }''')
+            if clicked:
+                return True
+        except:
+            pass
+
+        # Strategy 5: Press Enter key (many forms submit on Enter in the last focused field)
+        try:
+            await page.keyboard.press("Enter")
+            await asyncio.sleep(2)
+            return True
+        except:
+            pass
+
+        return False
 
     @staticmethod
     def _build_field_values(user_profile: Dict, cover_letter: str, auto_answers: Dict) -> Dict:
@@ -964,72 +877,10 @@ class PlatformAutomation:
                 except Exception as e:
                     logger.warning(f"Resume upload failed: {e}")
 
-            submit_selectors = [
-                'button[type="submit"]', 'input[type="submit"]',
-                '#submit', '#apply', '.apply-btn',
-                'button:has-text("Apply")', 'button:has-text("Submit")',
-                'button:has-text("Send")', 'button:has-text("Apply Now")',
-                'button:has-text("Submit Application")', 'button:has-text("Quick Apply")',
-                'button:has-text("Save & Submit")', 'button:has-text("Confirm")',
-                'a:has-text("Apply Now")', 'a:has-text("Submit")',
-                'div[role="button"]:has-text("Submit")', 'div[role="button"]:has-text("Apply")',
-                'button.btn-primary', 'button.btn-success',
-            ]
-            submitted = False
-            for sel in submit_selectors:
-                try:
-                    el = await page.wait_for_selector(sel, timeout=2500)
-                    if el and await el.is_visible():
-                        await el.scroll_into_view_if_needed()
-                        await asyncio.sleep(random.uniform(0.5, 1))
-                        await el.click()
-                        result["status"] = "submitted"
-                        submitted = True
-                        await asyncio.sleep(random.uniform(3, 5))
-                        break
-                except:
-                    continue
-
-            # Generic fallback: find any visible button with submit-like text
-            if not submitted:
-                try:
-                    buttons = await page.query_selector_all('button, a[role="button"], input[type="submit"], div[role="button"]')
-                    for btn in buttons:
-                        try:
-                            text = (await btn.inner_text()).strip().lower()
-                            if any(kw in text for kw in ['submit', 'send', 'apply now', 'apply', 'confirm', 'save']):
-                                if await btn.is_visible():
-                                    await btn.scroll_into_view_if_needed()
-                                    await asyncio.sleep(0.5)
-                                    await btn.click()
-                                    result["status"] = "submitted"
-                                    submitted = True
-                                    await asyncio.sleep(3)
-                                    break
-                        except:
-                            continue
-                except:
-                    pass
-
-            # Last resort: JS click
-            if not submitted:
-                try:
-                    await page.evaluate('''() => {
-                        const btns = document.querySelectorAll('button, input[type="submit"], a.btn');
-                        for (const b of btns) {
-                            const t = (b.innerText || b.value || '').toLowerCase();
-                            if (t.includes('submit') || t.includes('apply')) {
-                                b.click();
-                                return true;
-                            }
-                        }
-                        return false;
-                    }''')
-                    result["status"] = "submitted"
-                    submitted = True
-                    await asyncio.sleep(3)
-                except:
-                    pass
+            submitted = await PlatformAutomation._try_submit(page)
+            if submitted:
+                result["status"] = "submitted"
+                await asyncio.sleep(random.uniform(3, 5))
 
             if result["status"] == "failed":
                 if result["filled_fields"]:
