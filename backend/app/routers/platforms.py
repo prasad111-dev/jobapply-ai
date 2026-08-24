@@ -366,9 +366,3 @@ async def scrape_all_categories_endpoint(
         "message": "Background scrape started! Jobs will appear as they are loaded. Refresh the page in 1-2 minutes.",
         "total_before": total_before,
     }
-    except Exception as e:
-        return {
-            "success": False,
-            "message": f"Scrape failed: {str(e)[:200]}",
-            "scraped_count": 0,
-        }
